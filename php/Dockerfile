@@ -12,19 +12,20 @@
 FROM php:8.4-fpm
 
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libpq-dev
+    git unzip curl libpq-dev libonig-dev libxml2-dev zip \
+    && docker-php-ext-install pdo pdo_pgsql mbstring xml ctype fileinfo
 
-RUN docker-php-ext-install pdo pdo_pgsql
+RUN a2enmod rewrite
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 775 storage bootstrap/cache
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-EXPOSE 9000
+RUN chown -R www-data:www-data storage bootstrap/cache
+
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
