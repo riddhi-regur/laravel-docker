@@ -9,23 +9,34 @@
 
 # WORKDIR /var/www
 
-FROM php:8.4-fpm
+FROM php:8.3-apache
 
 RUN apt-get update && apt-get install -y \
     git unzip curl libpq-dev libonig-dev libxml2-dev zip \
-    && docker-php-ext-install pdo pdo_pgsql mbstring xml ctype fileinfo
+    && docker-php-ext-install pdo pdo_pgsql mbstring xml ctype fileinfo bcmath exif pcntl
 
 RUN a2enmod rewrite
 
 WORKDIR /var/www/html
 
-COPY . .
+# 👇 IMPORTANT FIX
+COPY app/ .
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+ENV COMPOSER_MEMORY_LIMIT=-1
+
+RUN cp .env.example .env || true
+
+RUN composer install --prefer-dist --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-reqs
 
 RUN chown -R www-data:www-data storage bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache
 
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+
+RUN php artisan config:clear && \
+    php artisan cache:clear && \
+    php artisan route:clear && \
+    php artisan view:clear
