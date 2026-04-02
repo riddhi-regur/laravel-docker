@@ -23,9 +23,17 @@ COPY . .
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Create env file
+RUN cp .env.example .env || true
 
+# Install dependencies safely
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+# Fix permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache
 
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+
+
