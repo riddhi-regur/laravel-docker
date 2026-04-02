@@ -19,13 +19,16 @@ RUN a2enmod rewrite
 
 WORKDIR /var/www/html
 
-COPY . .
+# 👇 IMPORTANT FIX
+COPY app/ .
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+ENV COMPOSER_MEMORY_LIMIT=-1
+
 RUN cp .env.example .env || true
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-reqs
+RUN composer install --prefer-dist --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-reqs
 
 RUN chown -R www-data:www-data storage bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
