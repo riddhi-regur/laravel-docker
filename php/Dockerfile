@@ -9,13 +9,13 @@
 
 # WORKDIR /var/www
 
-FROM php:8.3-apache
+FROM php:8.4-fpm
 
 RUN apt-get update && apt-get install -y \
     git unzip curl libpq-dev libonig-dev libxml2-dev zip \
     && docker-php-ext-install pdo pdo_pgsql mbstring xml ctype fileinfo bcmath exif pcntl
 
-RUN a2enmod rewrite
+# RUN a2enmod rewrite
 
 WORKDIR /var/www/html
 
@@ -33,13 +33,14 @@ RUN composer install --prefer-dist --no-dev --optimize-autoloader --no-interacti
 RUN chown -R www-data:www-data storage bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
 
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+# ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+# RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 
 # Install Node.js and npm
-RUN apt-get update && apt-get install -y \
-    curl \
-    gnupg \
-    && curl -sL https://nodesource.com | bash - \
-    && apt-get install -y nodejs
+# Correct way to install Node.js 20 on Debian/Ubuntu
+# This copies Node.js and npm directly from the official Node image
+COPY --from=node:20 /usr/local/bin /usr/local/bin
+COPY --from=node:20 /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+
 
